@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Consulta Ambiental</title>
+    <link rel="stylesheet" href="https://openlayers.org/en/v4.6.5/css/ol.css" type="text/css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://openlayers.org/en/v4.6.5/build/ol.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.5.0/proj4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="cargarContador.js"></script>
+
+
+    <link rel="stylesheet" href="estilo.css">
+    <style>
+        /* Estilos personalizados */
+        body {
+            text-align: justify;
+        }
+
+        .container {
+            margin: 0 auto;
+            padding: 20px;
+            max-width: 1024px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .myDiv {
+            text-align: center;
+            padding: 0; 
+            border: none;               
+        }
+
+        .titulo {
+            font-weight: bold;
+        }
+
+        .center-table {
+            margin: 0 auto;
+            width: 500px; /* Ancho fijo de la tabla */
+            text-align: center;
+        }
+
+        .center-table1 {
+            margin: 0 auto;
+            width: 700px; /* Ancho fijo de la tabla */
+            text-align: center;
+        }
+
+        .leaflet-control-attribution {
+            display: none;
+        }
+
+        .map {
+            height:20;
+            width: auto;
+            margin: 1px auto;    
+        }
+
+        .center-text {
+            text-align: center;
+        }
+
+    </style>
+
+   
+
+</head>
+<body>
+    
+    <div class="container p-4 my-4 mt-4">               
+        <div class="myDiv">
+            <div class="row">
+                <div class="col-lg-2 d-flex justify-content-center align-items-center" style="height: 150px; width: auto;">
+                    <img src="../consultaAmbiental/img/logo_cas.png" alt="" style="width: auto; height: 100%;">
+                </div>
+                <div class="col-lg-10 d-flex justify-content-center align-items-center" style="height: 150px; width: auto;">
+                    <div>
+                        <h3><b>VERIFICACION DE DETERMINANTES AMBIENTALES</b></h3>
+                        <h4><b><div id="contador"></div></b></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="text-align: center; border-top: 1px solid gray; margin: 10px 0;"></div>
+
+    <p id="fechaHora"></p>
+    
+    <br>
+    <div id="gris" style="background-color: DCDADA;" class="titulo text-center">Datos Generales suministrados</div>
+    <hr>
+    <br>
+        <div><b>Nombre del predio: </b><?php echo $nomPredio = $_POST['nomPredio']; ?></div>
+        <div><b>Codigo predial: </b><?php echo $codPredial = $_POST['codPredial']; ?></a></div>
+    </br>
+    <div>
+        <?php
+            // Cadena de texto
+            $cadena = $_POST['the_geom'];
+
+            $flag_produccion = false;
+            $flag_preserv = false;
+            $porc_preserv = 0;
+            $flag_zSansil = false;
+            $porc_zSansil = 0;
+            $area_preserv = 0;
+
+                // Extraer los valores numéricos
+                $matches = [];
+                preg_match_all('/-?\d+(\.\d+)?/', $cadena, $matches);
+                $valores = [];
+                for ($i = 0; $i < count($matches[0]); $i += 2) {
+                    $valor1 = floatval($matches[0][$i]);
+                    $valor2 = floatval($matches[0][$i + 1]);
+                    $valores[] = [$valor1, $valor2];
+                }
+
+                // Calcular el número de columnas y registros por columna
+                $numero_registros = count($valores);
+                $num_columnas = $numero_registros > 10 ? ceil($numero_registros / 10) : 1;
+                $registros_por_columna = ceil($numero_registros / $num_columnas);
+                ?>
+
+            <?php for ($col = 0; $col < $num_columnas; $col++) { ?>
+            <table border="1" class="center-table">
+                <tr>
+                    <th class="center-text">Número</th>
+                    <th class="center-text">X</th>
+                    <th class="center-text">Y</th>
+                </tr>
+            <?php for ($fila = $col * $registros_por_columna; $fila < min(($col + 1) * $registros_por_columna, $numero_registros); $fila++) { ?>
+                <tr>
+                    <td class="center-text"><?php echo $fila + 1; ?></td>
+                    <td class="center-text"><?php echo $valores[$fila][0]; ?></td>
+                    <td class="center-text"><?php echo $valores[$fila][1]; ?></td>
+                </tr>
+                    <?php } ?>
+            </table>
+            <br>
+        <?php } ?>
+    </div>
+    <br>
+    <div id="gris" style="background-color: DCDADA;" class="titulo text-center">Resultado de la verificación a las determinantes ambientales</div>
+    <hr>
+    <br>
+    <div>
+        <p>Del proceso de revisión de coordenadas y/o de la información geográfica suministrada, se concluye lo siguiente:</p>
+    </div>
+    <br>
+        
+    <p><strong><em>Localizacion General</em></strong></p>
+
+    <!-- div del mapa -->
+ <div class="myDiv">
+    <div id="map"></div>
+    <script src="script.js"></script>
+        <!-- script para dibujar en el mapa-->
+       <script>
+
+            // Crear la capa de dibujo
+            var drawLayer = new ol.layer.Vector({
+                source: new ol.source.Vector(),
+                style: new ol.style.Style({
+                    fill: new ol.style.Fill({
+                      color: 'rgba(208, 59, 16, 0.3)'
+                    }),
+                    stroke: new ol.style.Stroke({
+                      color: 'rgba(208, 59, 16, 1)',
+                      width: 2
+                    }),
+                    image: new ol.style.Circle({
+                      radius: 7,
+                      fill: new ol.style.Fill({
+                        color: 'rgba(208, 59, 16, 0.3)',
+                      }),
+                      stroke: new ol.style.Stroke({
+                      color: 'rgba(208, 59, 16, 1)',
+                      width: 3
+                    })
+                    })
+                  })
+            });
+
+            map.addLayer(drawLayer);
+
+            // Obtener las coordenadas WKT del formulario
+            
+
+            var epsg = '<?php echo $_POST['datum']; ?>';
+            if(epsg === '3116'){
+                var wkt = '<?php echo $geomw; ?>';
+                //console.log("El EPSG es 3116");
+                //console.log("Las coordenadas para mostrar el mapa son: " + wkt);
+            }else {
+                var wkt = '<?php echo $geomw; ?>';
+                //console.log("El EPSG es diferente" + epsg);
+                //console.log("Las coordenadas son: " + wkt2);
+            }
+
+            // Crear la geometría a partir de las coordenadas WKT
+            var format = new ol.format.WKT();
+
+            var feature = format.readFeature(wkt, {                      
+                    dataProjection: 'EPSG:4326',
+                    featureProjection: 'EPSG:3857'
+                });              
+           
+            drawLayer.getSource().addFeature(feature);
+
+            // Ajustar la vista para mostrar la geometría dibujada
+            var extent = feature.getGeometry().getExtent();
+            map.getView().fit(extent, map.getSize());
+
+            // Deshabilitar la interacción del mapa
+              map.getInteractions().forEach(function (interaction) {
+                interaction.setActive(false);
+              });
+
+        </script>
+    </div>
+    <!-- informacion general -->
+
+    <br>
+    <div class="center-table">  
+        <?php if(sizeof($municipio) > 0) { ?>
+            <table border="1" class="center-table">
+                <tr>
+                    <td colspan="2" class="center-text"><b>Municipios</b></td>
+                </tr>
+                <tr>
+                    <th scope="col" width="50%" class="center-text">Código</th>
+                    <th class="center-text">Nombre</th>
+                </tr>
+                <?php foreach ($municipio as $row) { ?>
+                    <tr>
+                        <td class="center-text"><?php echo $row['cod_munici'] ?></td>
+                        <td class="center-text"><?php echo $row['nom_munici'] ?></td>
+                    </tr>
+                <?php } ?>
+            </table>
+        <?php } else { ?>
+            <div>
+                <p>La geometría no se encuentra dentro de ningún municipio de la jurisdicción.</p>
+            </div>
+        <?php } ?>
+        <br>
+        <?php if(sizeof($vereda) > 0) { ?>
+            <table border="1" class="center-table">
+                <tr>
+                    <td colspan="2" class="center-text"><b>Veredas</b></td>
+                </tr>
+                <tr>
+                    <th scope="col" width="50%" class="center-text">C&oacute;digo</th>
+                    <th class="center-text">Nombre</th>
+                </tr>
+                <?php   foreach ($vereda as $row) { ?>
+                <tr>
+                    <td scope="row" class="center-text"><?php echo $row['cod_barrio'] ?></td>
+                    <td class="center-text"><?php echo $row['nom_barrio'] ?></td>
+                </tr>
+                <?php } } ?>
+            </table>
+            
+        
+         </div>
+         <br> 
+            <p><strong><em>Dimensiones de la geometría</em></strong></p>
+            <a>Perímetro (m): <?php echo $perimetro1 ?></a></br>
+            <a>Area (ha): <?php echo $area1 ?></a></br>
+            <a>Longitud (m): <?php echo $longitud1 ?></a>
+
+        <!-- Apartado Ley 2da -->
+        
+        <div>
+            <br>
+            <p><strong><em>Reserva Forestal del Rio Magdalena (Ley 2da del 59)</em></strong></p>
+            <?php if(sizeof($ley2) > 0) { ?>
+                <table border="1" class="center-table1">
+                    <tr>
+                        <th scope="col" width="25%" class="center-text">Traslape</th>
+                        <th scope="col" width="25%" class="center-text">Tipo de zona</th>
+                        <th scope="col" width="25%" class="center-text">Área de traslape (Ha)</th>
+                    </tr>
+                <?php foreach ($ley2 as $row) { ?>
+                    <tr>
+                    <?php 
+                    if ($geomtype == 'POLYGON') {
+                        if($porcentaje < 100) {                            
+                        ?>
+                        <td width="25%" class="center-text">Parcial</td>
+                        <?php 
+                        } else { ?>
+                        <td width="25%" class="center-text">Total</td>
+                        <?php } ?>    
+                        <td width="25%" class="center-text"><?php echo $row['tipo_zoni']; ?></td>
+                        <td width="25%" class="center-text"><?php echo $row['area_interseccion']; ?></td>
+                    </tr>          
+                    <?php
+                    } else if ($geomtype == 'MULTIPOLYGON') {
+                        if($porcentaje < 100) {                            
+                        ?>
+                        <td width="25%" class="center-text">Parcial</td>
+                        <?php 
+                        } else { ?>
+                        <td width="25%" class="center-text">Total</td>
+                        <?php } ?>              
+                        <td width="25%" class="center-text"><?php echo $row['tipo_zoni']; ?></td>
+                        <td width="25%" class="center-text"><?php echo $row['area_interseccion']; ?></td>
+                    </tr>          
+                    <?php
+                    }else if ($geomtype == 'LINESTRING') {
+                        if($porce_long < 100) {                            
+                        ?>
+                        <td width="25%" class="center-text">Parcial</td>
+                        <?php } else { ?>
+                        <td width="25%" class="center-text">Total</td>
+                        <?php } ?>              
+                        <td width="25%" class="center-text"><?php echo $row['tipo_zoni']; ?></td>
+                        <td width="25%" class="center-text"><?php echo $row['area_interseccion']; ?></td>
+                    </tr>          
+                    <?php
+                    } else if ($geomtype == 'POINT') {
+                        if($intersection_exists != "t") {                            
+                        ?>
+                        <td width="25%" class="center-text"></td>
+                        <?php } else { ?>
+                        <td width="25%" class="center-text">Total</td>
+                        <?php } ?>              
+                        <td width="25%" class="center-text"><?php echo $row['tipo_zoni']; ?></td>
+                        <td width="25%" class="center-text"><?php echo $row['area_interseccion']; ?></td>
+                    </tr>          
+                    <?php
+                    }
+                }
+            }else{ ?>
+                    <table border="1" class="center-table1">
+                        <tr>
+                            <th scope="col" width="25%" class="center-text">Traslape</th>
+                            <th scope="col" width="25%" class="center-text">Tipo de zona</th>
+                            <th scope="col" width="25%" class="center-text">Área de traslape (Ha)</th>
+                        </tr>
+                        <tr>
+                            <td width="25%" class="center-text">No aplica</td>
+                            <td width="25%" class="center-text">No aplica</td>
+                            <td width="25%" class="center-text">No aplica</td>
+                        </tr></table><br>
+                          <td colspan="2">
+                            <u>Conclusión:</u> La geometría (punto / linea / polígono) no presenta traslape o superposición con la Reserva Forestal del Río Magdalena (Ley 2da del 59).
+                          </td>
+            <?php 
+            } ?>
+            </table>
+            <br>
+        </div>
+
+        <!-- Apartado AREAS PROTEGIDAS -->
+        <div>
+            <br>
+            <p><strong><em>Otras áreas del SINAP</em></strong></p>
+            <?php if(sizeof($sinap) > 0) { ?>
+            <table border="1" class="center-table1">
+                <tr>
+                    <th scope="col" width="25%" class="center-text">Traslape</th>
+                    <th scope="col" width="25%" class="center-text">Categoria</th>
+                    <th scope="col" width="25%" class="center-text">Nombre</th>
+                    <th scope="col" width="25%" class="center-text">Área de traslape (Ha)</th>
+                </tr>
+                <?php foreach ($sinap as $row) { ?>
+                    <tr>
+                    <?php if ($geomtype == 'POLYGON') {
+                        if($porcentaje < 100) { ?>
+                        <td width="25%" class="center-text">Parcial</td>
+                        <?php } else { ?>
+                        <td width="25%" class="center-text">Total</td>
+                        <?php } ?>
+                        <td width="25%" class="center-text"><?php echo $row['categoria']; ?></td>             
+                        <td width="25%" class="center-text"><?php echo $row['nombre']; ?></td>
+                        <td width="25%" class="center-text"><?php echo $row['area_interseccion']; ?></td>
+                    </tr>           
+                    <?php
+                    } else if ($geomtype == 'LINESTRING') {
+                        if($porce_long < 100) {                         
+                        ?>
+                        <td width="25%" class="center-text">Parcial</td>
+                        <?php } else { ?>
+                        <td width="25%" class="center-text">Total</td>
+                        <?php } ?>
+                        <td width="25%" class="center-text"><?php echo $row['categoria']; ?></td>             
+                        <td width="25%" class="center-text"><?php echo $row['nombre']; ?></td>
+                        <td width="25%" class="center-text"><?php echo $row['area_interseccion']; ?></td>
+                    </tr>          
+                    <?php
+                    } else if ($geomtype == 'POINT') {
+                        if($intersection_exists != "t") {                            
+                        ?>
+                        <td width="25%" class="center-text"></td>
+                        <?php } else { ?>
+                        <td width="25%" class="center-text">Total</td>
+                        <?php } ?>
+                        <td width="25%" class="center-text"><?php echo $row['categoria']; ?></td>             
+                        <td width="25%" class="center-text"><?php echo $row['nombre']; ?></td>
+                        <td width="25%" class="center-text"><?php echo $row['area_interseccion']; ?></td>
+                    </tr>
+                    <?php
+                    } else if ($geomtype == 'MULTIPOLYGON') {
+                        if($porcentaje < 100) { ?>
+                        <td width="25%" class="center-text">Parcial</td>
+                        <?php } else { ?>
+                        <td width="25%" class="center-text">Total</td>
+                        <?php } ?>
+                        <td width="25%" class="center-text"><?php echo $row['categoria']; ?></td>             
+                        <td width="25%" class="center-text"><?php echo $row['nombre']; ?></td>
+                        <td width="25%" class="center-text"><?php echo $row['area_interseccion']; ?></td>
+                    </tr>           
+                    <?php
+                    }
+                }
+            }else { ?>
+                    <table border="1" class="center-table1">
+                        <tr>
+                            <th scope="col" width="25%" class="center-text">Traslape</th>
+                            <th scope="col" width="25%" class="center-text">Categoria</th>
+                            <th scope="col" width="25%" class="center-text">Nombre</th>
+                            <th scope="col" width="25%" class="center-text">Área de traslape (Ha)</th>
+                        </tr>
+                        <tr>
+                            <td width="25%" class="center-text">Sin traslape</td>
+                            <td width="25%" class="center-text">No aplica</td>
+                            <td width="25%" class="center-text">No aplica</td>
+                            <td width="25%" class="center-text">No aplica</td>
+                        </tr></table><br>
+                          <td colspan="2">
+                            <u>Conclusión:</u> La geometría (punto / linea / polígono) no presenta traslape o superposición con las áreas del SINAP presentes en la jurisdicción de la CAS.
+                          </td>
+            <?php } ?>
+            </table>
+        </div>
+
+        <div>
+            <br>
+            <p><strong><em>Areas protegidas declarados en la jurisdiccion de la CAS</em></strong></p>
+            <?php if(sizeof($zonifap) > 0) { ?>             
+               <!-- <td>-->
+                    <table border="1" class="center-table1">
+                       <tr>
+                          <th scope="col" width="25%" class="center-text">Categoria</th>
+                          <th scope="col" width="25%" class="center-text">Nombre área protegida</th>
+                          <th scope="col" width="25%" class="center-text">Zonificación ambiental</th>
+                          <th scope="col" width="25%" class="center-text">Área de traslape (Ha)</th>
+                          <?php if ($geomtype != 'LINESTRING') { ?>
+                          <th scope="col" width="25%" class="center-text">Porcentaje de traslape (%)</th>
+                          <?php } ?>
+                          <?php if ($geomtype == 'LINESTRING') { ?>
+                          <th scope="col" width="25%" class="center-text">Longitud de traslape (m)</th>
+                          <?php } ?>
+                        </tr>
+                        <!--Se manejan los controles de los 3 flags, porcentajes y areas totales a controlar en los diferentes tipos de conclusión para salidas del banco agrario, en respuesta a caso del banco 20240410 - fdiazc-->
+                        <?php   foreach ($zonifap as $row) { 
+                            
+                            if($_POST['hdTipoCons'] == "Consulta Banco Agrario" && ($row['zonificacion'] == 'Zona Produccion' || $row['zonificacion'] == 'Uso sostenible' || $row['zonificacion'] == 'Amortiguacion - Produccion' || $row['zonificacion'] == 'Produccion')){ 
+                                $flag_produccion = true;
+                            }
+
+                            if($row['zonificacion'] == 'Zona Preservacion' || $row['zonificacion'] == 'Preservacion'){
+                                $flag_preserv = true;
+                                $porc_preserv += $row['porcentaje_traslape'];
+                                $area_preserv += $row['total_area_interseccion'];
+                            }
+
+                            if($_POST['hdTipoCons'] == "Consulta Banco Agrario" && $row['zonificacion'] == 'Subzona para el aprovechamiento sostenible' || $row['zonificacion'] == 'Subzona para el desarrollo'){ 
+                                $flag_zSansil = true;
+                                $porc_zSansil +=  $row['porcentaje_traslape'];
+                            }
+                        ?>
+                        <!--FIN DEL CONTROL DE FLAGS-->
+                       <tr>
+                         <td width="25%" class="center-text"><?php echo $row['categoria'] ?></td>
+                         <td width="25%" class="center-text"><?php echo $row['nombre'] ?></td>
+                         <td width="25%" class="center-text"><?php echo $row['zonificacion'] ?></td>
+                         <td width="25%" class="center-text"><?php echo $row['total_area_interseccion'] ?></td>
+                         <?php if ($geomtype != 'LINESTRING') { ?>
+                         <td width="25%" class="center-text"><?php echo $row['porcentaje_traslape'] ?></td>
+                          <?php } ?>
+                         <?php if ($geomtype == 'LINESTRING') { ?>
+                         <td width="25%" class="center-text"><?php echo $row['total_longitud_interseccion'] ?></td>
+                         <?php } ?>
+                       </tr>					
+                        <?php   } ?> 
+					</table>
+					<br>
+					
+					<!-- valicación para el banco agrario  -->
+					<?php
+						$TipoCons = $_POST['hdTipoCons'];
+						if($flag_preserv && $porc_preserv >= 50){ ?>
+							<u><b>Conclusión:</b></u> La geometría del área consultada cuenta con el 50% o más: ( <b><?php echo $porc_preserv ?> % -- <?php echo  $area_preserv ?> Ha</b>) en traslape con la zona de preservación.
+						<?php } else if ($flag_produccion) {
+						?>
+                        <table border="2">
+                            <tr>
+                            <td colspan="2">
+                                <u><b>Conclusión:</b></u> Conforme a la zonificación ambiental definida para el área protegida, se tiene el(los) siguiente(s) régimen(es) de uso.<br> 
+                                <br><b>En la zona de producción o uso sostenible del DRMI <?php echo $row['nombre']?></b><br><br>
+                                <u>“…[T]odas las actividades de producción, extracción, construcción, adecuación o mantenimiento de infraestructura, relacionadas con el aprovechamiento sostenible de la biodiversidad, así como las actividades agrícolas, ganaderas, mineras, forestales, industriales y los proyectos de desarrollo y habitacionales no nucleadas con restricciones en la densidad de ocupación y construcción siempre y cuando no alteren los atributos de la biodiversidad previstos para cada categoría”</u>.
+                                <br><br>Se certifica que la actividad destino: <b>" <?php echo $_POST['selectDestino'] ?> "</b> a desarrollarse al interior del predio analizado, es una actividad <b>permitida</b> al interior del Área protegida.
+                            </td></tr>
+                        </table>				
+					<?php }  
+						if($flag_zSansil){ ?>
+                            <table>
+                                <tr>
+                                <td colspan="2">
+                                    <br><br><u><b>Conclusión Específica para el DRMI del humedal San Silvestre:</b></u>
+                                    Las actividades permitidas, condicionadas o restringidas al interior del DRMI con porcentaje de area de ( <b><?php echo $porc_zSansil ?> Ha</b>) son las definidas en el plan de manejo ambiental.
+                                </td></tr>
+                            </table>
+					<?php }
+						} else { ?>
+                        <table border="1" class="center-table1">
+                        <tr>
+                          <th scope="col" width="25%" class="center-text">Nombre área protegida</th>
+                          <th scope="col" width="25%" class="center-text">Zonificación ambiental</th>
+                          <th scope="col" width="25%" class="center-text">Área de traslape (Ha)</th>
+                          <?php if ($geomtype == 'LINESTRING') { ?>
+                          <th scope="col" width="25%" class="center-text">Longitud traslape (m)</th>
+                          <?php } ?>
+                        </tr>
+                       <tr>
+                         <td width="25%" class="center-text">Sin traslape</td>
+                         <td width="25%" class="center-text">Sin traslape</td>
+                         <td width="25%" class="center-text">Sin traslape</td>
+                        <?php if ($geomtype == 'LINESTRING') { ?>
+                         <td width="25%" class="center-text">Sin traslape</td>
+                         <?php } ?>
+                       </tr></table><br>
+                        <table><tr>
+                          <td colspan="2">
+                            <u>Conclusión:</u> La geometría (punto / linea / polígono) no presenta traslape o superposición con las área protegida declarada en la jurisdicción de la CAS.
+                          </td></tr></table>
+                        <?php } ?>                    
+                <!--</td>            -->
+        </div>
+
+        <div>
+            <br>
+            <p><strong><em>Páramos presentes en la jurisdiccion de la CAS</em></strong></p>
+            <?php if(sizeof($paramo) > 0) { ?>
+                <table border="1" class="center-table1">
+                    <tr>
+                        <th scope="col" width="25%" class="center-text">Traslape</th>
+                        <th scope="col" width="25%" class="center-text">Nombre</th>
+                        <th scope="col" width="25%" class="center-text">Área de traslape (Ha)</th>
+                    </tr>
+                    <?php foreach ($paramo as $row) { ?>
+                    <tr>
+                        <?php if($porcentaje < 100) { ?>
+                        <td width="25%" class="center-text">Parcial</td>
+                        <?php } else { ?>
+                        <td width="25%" class="center-text">Total</td>
+                        <?php } ?>              
+                        <td width="25%" class="center-text"><?php echo $row['nombre']; ?></td>
+                        <td width="25%" class="center-text"><?php echo $row['area_interseccion']; ?></td>
+                    </tr>          
+                    <?php
+                    } }else
+                    { ?>
+                    <table border="1" class="center-table1">
+                        <tr>
+                            <th scope="col" width="25%" class="center-text">Traslape</th>
+                            <th scope="col" width="25%" class="center-text">Nombre</th>
+                            <th scope="col" width="25%" class="center-text">Área de traslape (Ha)</th>
+                        </tr>
+                        <tr>
+                            <td width="25%" class="center-text">Sin traslape</td>
+                            <td width="25%" class="center-text">No aplica</td>
+                            <td width="25%" class="center-text">No aplica</td>
+                        </tr></table><br>
+                          <td colspan="2">
+                            <u>Conclusión:</u> La geometría (punto / linea / polígono) no presenta traslape o superposición con los páramos presentes en la jurisdicción de la CAS.
+                          </td>
+                    <?php } ?>
+            </table>
+        </div>
+
+         <!-- Apartado BASE -->
+    <div>
+        <br>
+        <p><strong><em>Analisis Cartografía Base - Superficie de Agua - Fuente IGAC</em></strong></p>       
+        <p><strong><em>Analisis sobre Drenajes sencillos</em></strong></p>
+        <?php if(sizeof($corriente) > 0) { ?>
+         <div>
+            <td>
+                <table border="1" class="center-table1">
+                   <tr>
+                      <th scope="col" width="10%" class="center-text">ID</th>                     
+                      <th scope="col" width="10%" class="center-text">Nombre</th>
+		      <th scope="col" width="10%" class="center-text">Tipo</th><!-- aca codigo para revisar nuevo dato a tabla -->
+                      <th scope="col" width="10%" class="center-text">Plancha</th>
+                      <th scope="col" width="10%" class="center-text">Fuente</th>
+                      <th scope="col" width="10%" class="center-text">Año</th>
+                      <?php if ($geomtype == 'POINT') { ?>
+                      La(s) corriente(s) mas cercana(s) al punto es(son):
+                      <th scope="col" width="25%" class="center-text">Distancia (m)</th>
+                      <?php } else { ?>
+                      La geometría presenta traslape o superposicion con la(s) siguiente(s) corriente(s): <?php } ?>
+                    </tr>
+
+                    <?php foreach ($corriente as $row) { ?>                                   
+                   <tr>
+                     <td class="center-text"><?php echo $row['id'] ?></td>                   
+                     <td class="center-text"><?php echo $row['nombre_geo'] ?></td>
+		     <td class="center-text"><?php echo $row['estado'] ?></td><!-- aca codigo para revisar nuevo dato a tabla -->
+                     <td class="center-text"><?php echo $row['plancha'] ?></td>
+                     <td class="center-text"><?php echo $row['fuente'] ?></td>
+                     <td class="center-text"><?php echo $row['anio'] ?></td>
+                     <?php if ($geomtype == 'POINT') { ?>
+                     <td class="center-text"><?php echo $distancia1 ?></td>
+                     <?php } ?>
+                   </tr>
+                    <?php   }} else { ?>
+                      <td colspan="2">
+                      <u>Conclusión:</u> La geometría (punto / linea / polígono) no se traslapa o superpone con un drenaje sencillo presente en la zona.
+                    <?php   } ?>
+                      </td>
+                </table>
+                <br>
+            </td>
+            
+            <br>           
+            <p><strong><em>Analisis sobre Drenajes Dobles</em></strong></p>
+            <?php if(sizeof($corrienteDoble) > 0) { ?>
+             <div>
+                <td>
+                    <table border="1" class="center-table1">
+                       <tr>
+                          <th scope="col" width="10%" class="center-text">ID</th>                     
+                          <th scope="col" width="10%" class="center-text">Nombre</th>
+                          <?php if ($geomtype == 'POINT') { ?>
+                          La(s) corriente(s) mas cercana(s) al punto es(son):
+                          <th scope="col" width="25%" class="center-text">Distancia (m)</th>
+                          <?php } else { ?>
+                          La geometría presenta traslape o superposicion con la(s) siguiente(s) corriente(s): <?php } ?>
+                        </tr>
+
+                        <?php foreach ($corrienteDoble as $row) { ?>                                   
+                       <tr>
+                         <td class="center-text"><?php echo $row['id'] ?></td>                   
+                         <td class="center-text"><?php echo $row['nombre_geo'] ?></td>
+                         <?php if ($geomtype == 'POINT') { ?>
+                         <td class="center-text"><?php echo $distancia2 ?></td>
+                         <?php } ?>
+                       </tr>
+                        <?php   }} else { ?>
+                          <td colspan="2">
+                          <u>Conclusión:</u> La geometría (punto / linea / polígono) no se traslapa o superpone con un drenaje doble presente en la zona.
+                        <?php   } ?>
+                          </td>
+                    </table>
+                </td>
+                <br>
+                <br>
+                <br>
+                <div class="nota" style="text-align: justify; border: 1px solid #ccc;">
+                    <h6><b>Nota: </b>La "verificación de las determinantes ambientales" corresponde al proceso de superponer información geográfica, como coordenadas, con diversas áreas protegidas que forman parte del Sistema Nacional de Áreas Protegidas – SINAP. Este sistema incluye categorías como Parques Nacionales Naturales, Parques Naturales Regionales, Reservas Forestales Protectoras, Distritos de Manejo Integrado, Distritos de Conservación de Suelo, Áreas de Recreación, Reservas Nacionales de la Sociedad Civil, así como áreas de conservación in situ, como reservas forestales establecidas por la Ley 2a de 1959 y ecosistemas de páramo.<br><br>
+                    De conformidad con señalados en el artículo 35 del decreto 2372 de 2010, las actividades permitidas, condicionadas y/o restringidas al interior de un área protegida, son las definidas en el plan de manejo ambiental y en el acto administrativo con el cual se adopta dicho instrumento de planificación.
+                    </h6>
+                </div>
+                </div>
+                    <br>                    
+                    <!-- <div id="firma" style="text-align: center;">
+                        <div><img src="../consultaAmbiental/img/FIRMA.png" alt="" style="width: 350px; height: auto;"></div>
+                        <div style="text-align: center; margin: 10px auto; width: 300px; border-top: 2px solid black;"></div>
+                        
+                    </div>-->
+                    <br>
+                    <br>                    
+                    <div style="text-align: center; border-top: 1px solid gray; margin: 10px 0;"></div>
+                    <div style="text-align: center;">
+                        <p>Corporación Autónoma Regional de Santander - CAS<br>
+                        NIT: 804000292-0<br>
+                        Cra. 12 No. 9 – 06 – San Gil Santander<br>
+                        PBX: +57 60 (7) 7238925<br>
+                        Línea de Atención: +57 3115941820</p>
+                    </div>
+            </div>       
+        </div>    
+    </div>
+</div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+    <script>
+        function mostrarFechaHora() {
+            const fechaActual = new Date();
+            const fecha = fechaActual.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const hora = fechaActual.toLocaleTimeString();
+
+            const fechaHoraFormato = `San Gil, ${fecha}, ${hora}`;
+            document.getElementById("fechaHora").textContent = fechaHoraFormato;
+        }
+
+        // Llama a la función para mostrar la fecha y la hora cuando se carga la página
+        mostrarFechaHora();
+    </script>
+
+</body>
+
+</html>

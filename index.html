@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Consulta</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="text/javascript" src="geometry_window_functions.js" defer=defer></script>
+  <link href="//netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/css/bootstrap-select.min.css" />
+  <script src="geometry_window_4.js"></script>
+  <script src="geometry_window_5.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/js/bootstrap-select.min.js"></script>
+
+  <link rel="stylesheet" href="./estilo.css" />
+
+  <style>
+    .container-fluid {
+      height: 100vh;
+      width: 100%;
+      background-size: cover;
+      display: table;
+      background-attachment: fixed;
+      background-image: url(../consultaAmbiental/img/FONDO1.png);
+    }
+</style>
+</head>
+
+
+<!--<body OnLoad=AddCells('PTable',1,4)>-->
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-light" style="background-color: #00801d; margin-bottom: 0px;">
+    <div class="container">
+        <a class="navbar-brand text-with font-weight-bolder" href="https://www.cas.gov.co/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center;"><img src="../consultaAmbiental/img/Logo.png" width="" height="100" alt="" title="Portal Institucional" style="margin-right: 10px;"></a>
+        
+        <div class="collapse navbar-collapse" id="collapsibleNavbar">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link text-light font-weight-bolder" href="/consulta">Inicio</a></li>
+                <li class="nav-item"><a class="nav-link text-light font-weight-bolder" href="/preguntasfrecuentes">Preguntas frecuentes</a></li>
+                </li><li class="nav-item"><a class="nav-link text-light font-weight-bolder" href="https://cas.gov.co/site/contactenos/" target="_blank" rel="noopener noreferrer">Contacto</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+
+<div class="modal" id="customAlert">
+  <div class="modal-content">
+    <span class="close-btn">&times;</span>
+    <h4><b>Señor funcionario del Banco Agrario:</b></h4>
+    <p id="justified-text">Tenga en cuenta que las conclusiones que se generan en el siguiente certificado por este acceso, están acordes a una solicitud particular realizada por el área de riesgos de su entidad para lograr el entendimiento de la destinación de suelos, para el cual se requiere de la certificación, con respecto a la zonificación ambiental de las áreas protegidas declaradas en la jurisdicción de la CAS. 
+      <br><br>Cabe señalar que en esta etapa PILOTO, el resultado no constituye una versión final para toma de decisiones, sino un documento de prueba para definir o establecer la parametrización del certificado/documento final.</p>
+  </div>
+</div>
+
+<div class="modal2" id="customAlert2">
+  <div class="modal-content2">
+    <span class="close-btn2">&times;</span>
+    <h4><b>Señor Usuario:</b></h4>
+    <p id="justified-text2">Para poder realizar la consulta, debe diligenciar las coordenadas selecionando alguno de los 3 sistemas de coordenadas disponibles ('Planas X/Y', 'Geográficas Lat/Long', 'Geográficas GG.MM.SS')</p>
+  </div>
+</div>
+
+<div class="container-fluid">
+
+  <div class="row align-items-center">
+
+    <div class="col-sm-7 p-5 my-5 text-center text-white"><h1>Consulta de determinantes<br>del medio natural</h1></div>
+    
+   
+    <div class="col-sm-3 p-5 my-5 border rounded bg-light bg-opacity-50"><!--Area de datos del solicitante-->
+     
+      
+        
+      <form id="fr_consulta_ambiental" action="../consultaAmbiental/consultas1.php" method="POST" name="general">
+
+        <div id="dvTipoCons" class="mb-3 mt-3" style="align-items: center;">        
+          <h3>Consulta del Banco Agrario</h3><br>
+          
+          <input type="hidden" id="hdTipoCons" name="hdTipoCons" class="form-control" value="Publico"/>
+
+          <label class="form-label">Destino:</label><br>
+          <select name="selectDestino" id="selectDestino" class="selectpicker" data-show-subtext="true" data-live-search="true">
+            <option value="0" selected>.::Seleccione una opción::.</option>
+            <!--Actividades ganaderas-->
+            <option data-subtext="----Actividad de ganadería----" value="-1"></option>
+            <option data-subtext="Actividad de ganadería" value="Cría de ganado bovino y bufalino">Cría de ganado bovino y bufalino</option>
+            <option data-subtext="Actividad de ganadería" value="Cría de caballos y otros equinos ">Cría de caballos y otros equinos </option>
+            <option data-subtext="Actividad de ganadería" value="Cría de ovejas y cabras ">Cría de ovejas y cabras </option>
+            <option data-subtext="Actividad de ganadería" value="Cría de ganado porcino">Cría de ganado porcino</option>
+            <option data-subtext="Actividad de ganadería" value="Cría de aves de corral">Cría de aves de corral</option>
+            <option data-subtext="Actividad de ganadería" value="Cría de otros animales n.c.p.">Cría de otros animales n.c.p.</option>
+            <!--Actividades Agricolas-->
+            <option data-subtext="----Actividad agrícola----" value="-2"></option>
+            <option data-subtext="Actividad agrícola" value="Cultivos agrícolas transitorios ">Cultivos agrícolas transitorios </option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de cereales (excepto arroz), legumbres y semillas oleaginosas ">Cultivo de cereales (excepto arroz), legumbres y semillas oleaginosas </option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de arroz ">Cultivo de arroz </option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de hortalizas, raíces y tubérculos ">Cultivo de hortalizas, raíces y tubérculos </option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de tabaco ">Cultivo de tabaco </option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de plantas textiles ">Cultivo de plantas textiles </option>
+            <option data-subtext="Actividad agrícola" value="Otros cultivos transitorios n.c.p.">Otros cultivos transitorios n.c.p.</option>
+            <option data-subtext="Actividad agrícola" value="Cultivos agrícolas permanentes ">Cultivos agrícolas permanentes </option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de frutas tropicales y subtropicales">Cultivo de frutas tropicales y subtropicales</option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de plátano y banano">Cultivo de plátano y banano</option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de café">Cultivo de café</option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de caña de azúcar">Cultivo de caña de azúcar</option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de flor de corte">Cultivo de flor de corte</option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de palma para aceite (palma africana) y otros frutos oleaginosos">Cultivo de palma para aceite (palma africana) y otros frutos oleaginosos</option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de plantas con las que se preparan bebidas">Cultivo de plantas con las que se preparan bebidas</option>
+            <option data-subtext="Actividad agrícola" value="Cultivo de especias y de plantas aromáticas y medicinales ">Cultivo de especias y de plantas aromáticas y medicinales </option>
+            <option data-subtext="Actividad agrícola" value="Otros cultivos permanentes n.c.p.">Otros cultivos permanentes n.c.p.</option>
+            <option data-subtext="Actividad agrícola" value="Propagación de plantas (actividades de los viveros, excepto viveros forestales)">Propagación de plantas (actividades de los viveros, excepto viveros forestales)</option>
+            <option data-subtext="Actividad agrícola" value="Actividades de apoyo a la agricultura ">Actividades de apoyo a la agricultura </option>
+            <option data-subtext="Actividad agrícola" value="Actividades de apoyo a la ganadería">Actividades de apoyo a la ganadería</option>
+            <option data-subtext="Actividad agrícola" value="Actividades posteriores a la cosecha ">Actividades posteriores a la cosecha </option>
+            <option data-subtext="Actividad agrícola" value="Tratamiento de semillas para propagación ">Tratamiento de semillas para propagación </option>
+            <!--Actividad forestal-->
+            <option data-subtext="----Actividad forestal----" value="-3"></option>
+            <option data-subtext="Actividad forestal" value="Silvicultura y otras actividades forestales">Silvicultura y otras actividades forestales</option>
+            <option data-subtext="Actividad forestal" value="Extracción de madera ">Extracción de madera </option>
+            <option data-subtext="Actividad forestal" value="Recolección de productos forestales diferentes a la madera">Recolección de productos forestales diferentes a la madera</option>
+            <option data-subtext="Actividad forestal" value="Servicios de apoyo a la silvicultura ">Servicios de apoyo a la silvicultura </option>
+            <!--Actividad de Pesca y acuicultura-->
+            <option data-subtext="----Actividad de Pesca y acuicultura----" value="-4"></option>
+            <option data-subtext="Actividad de Pesca y acuicultura" value="Pesca ">Pesca </option>
+            <option data-subtext="Actividad de Pesca y acuicultura" value="Pesca marítima ">Pesca marítima </option>
+            <option data-subtext="Actividad de Pesca y acuicultura" value="Pesca de agua dulce ">Pesca de agua dulce </option>
+            <option data-subtext="Actividad de Pesca y acuicultura" value="Acuicultura marítima ">Acuicultura marítima </option>
+            <option data-subtext="Actividad de Pesca y acuicultura" value="Acuicultura de agua dulce">Acuicultura de agua dulce</option>
+            <!--Actividad minera-->
+            <option data-subtext="----Actividad minera----" value="-5"></option>
+            <option data-subtext="Actividad minera" value="Extracción de hulla (carbón de piedra)">Extracción de hulla (carbón de piedra)</option>
+            <option data-subtext="Actividad minera" value="Extracción de carbón lignito">Extracción de carbón lignito</option>
+            <option data-subtext="Actividad minera" value="Extracción de petróleo crudo">Extracción de petróleo crudo</option>
+            <option data-subtext="Actividad minera" value="Extracción de gas natural">Extracción de gas natural</option>
+            <option data-subtext="Actividad minera" value="Extracción de minerales de hierro">Extracción de minerales de hierro</option>
+            <option data-subtext="Actividad minera" value="Extracción de minerales metalíferos no ferrosos">Extracción de minerales metalíferos no ferrosos</option>
+            <option data-subtext="Actividad minera" value="Extracción de minerales de uranio y de torio">Extracción de minerales de uranio y de torio</option>
+            <option data-subtext="Actividad minera" value="Extracción de oro y otros metales preciosos">Extracción de oro y otros metales preciosos</option>
+            <option data-subtext="Actividad minera" value="Extracción de minerales de níquel">Extracción de minerales de níquel</option>
+            <option data-subtext="Actividad minera" value="Extracción de otros minerales metalíferos no ferrosos n.c.p.">Extracción de otros minerales metalíferos no ferrosos n.c.p.</option>
+            <option data-subtext="Actividad minera" value="Extracción de piedra, arena, arcillas, cal, yeso, caolín, bentonitas y similares">Extracción de piedra, arena, arcillas, cal, yeso, caolín, bentonitas y similares</option>
+            <option data-subtext="Actividad minera" value="Extracción de piedra, arena, arcillas comunes, yeso y anhidrita">Extracción de piedra, arena, arcillas comunes, yeso y anhidrita</option>
+            <option data-subtext="Actividad minera" value="Extracción de arcillas de uso industrial, caliza, caolín y bentonitas">Extracción de arcillas de uso industrial, caliza, caolín y bentonitas</option>
+            <option data-subtext="Actividad minera" value="Extracción de esmeraldas, piedras preciosas y semipreciosas">Extracción de esmeraldas, piedras preciosas y semipreciosas</option>
+            <option data-subtext="Actividad minera" value="Extracción de otros minerales no metálicos n.c.p.">Extracción de otros minerales no metálicos n.c.p.</option>
+            <option data-subtext="Actividad minera" value="Extracción de minerales para la fabricación de abonos y productos químicos">Extracción de minerales para la fabricación de abonos y productos químicos</option>
+            <option data-subtext="Actividad minera" value="Extracción de halita (sal)">Extracción de halita (sal)</option>
+            <option data-subtext="Actividad minera" value="Extracción de otros minerales no metálicos n.c.p.">Extracción de otros minerales no metálicos n.c.p.</option>
+            <option data-subtext="Actividad minera" value="Actividades de apoyo para la extracción de petróleo y de gas natural">Actividades de apoyo para la extracción de petróleo y de gas natural</option>
+            <option data-subtext="Actividad minera" value="Actividades de apoyo para otras actividades de explotación de minas y canteras">Actividades de apoyo para otras actividades de explotación de minas y canteras</option>
+            <!--Actividad de construcción, adecuación o mantenimiento de infraestructura-->
+            <option data-subtext="----Actividad de construcción, adecuación o mantenimiento de infraestructura----" value="-6"></option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Construcción de infraestructura">Construcción de infraestructura</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Construcción de edificios residenciales">Construcción de edificios residenciales</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Construcción de edificios no residenciales">Construcción de edificios no residenciales</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Obras de ingeniería civil">Obras de ingeniería civil</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Construcción de carreteras y vías de ferrocarril">Construcción de carreteras y vías de ferrocarril</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Construcción de proyectos de servicio público">Construcción de proyectos de servicio público</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Construcción de otras obras de ingeniería civil">Construcción de otras obras de ingeniería civil</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Actividades especializadas para la construcción de edificios y obras de ingeniería civil">Actividades especializadas para la construcción de edificios y obras de ingeniería civil</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Demolición y preparación del terreno">Demolición y preparación del terreno</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Demolición">Demolición</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Preparación del terreno">Preparación del terreno</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Instalaciones eléctricas, de fontanería y otras instalaciones especializadas">Instalaciones eléctricas, de fontanería y otras instalaciones especializadas</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Instalaciones eléctricas">Instalaciones eléctricas</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Instalaciones de fontanería, calefacción y aire acondicionado">Instalaciones de fontanería, calefacción y aire acondicionado</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Otras instalaciones especializadas">Otras instalaciones especializadas</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Terminación y acabado de edificios, estructuras y/u obras de ingeniería civil">Terminación y acabado de edificios, estructuras y/u obras de ingeniería civil</option>
+            <option data-subtext="Actividad de construcción, adecuación o mantenimiento de infraestructura" value="Otras actividades especializadas para la construcción de edificios y obras de ingeniería civil">Otras actividades especializadas para la construcción de edificios y obras de ingeniería civil</option>
+          </select>
+
+          <!--<label for="Destino" class="form-label">Destino:</label>
+          <select name="selectDestino" id="selectDestino" class="form-control">
+            <option value="-1" selected>.::Seleccione una opción::.</option>
+            <option value="Siembre de Cacao">Siembre de Cacao</option>
+            <option value="Siembra de Café">Siembra de Café</option>
+            <option value="Siembra de Frutales">Siembra de Frutales</option>
+            <option value="Siembra de Cítricos">Siembra de Cítricos</option>
+            <option value="Ganadería">Ganadería</option>
+          </select>-->
+        </div>
+  
+        <h4>Información general</h4>  
+
+        <div class="mb-3 mt-3">
+          <label for="nombre" class="form-label">Nombre del Predio:</label>
+          <input type="text" class="form-control" id="nombre" placeholder="Nombre del predio" name="nomPredio">
+        </div>
+        <div class="mb-3 mt-3">
+          <label for="codPredial" class="form-label">Codigo predial:</label>
+          <input type="codPredial" class="form-control" id="codPredial" placeholder="Codigo predial" name="codPredial">
+        </div>        
+        <br>
+        
+         
+<script type="text/javascript">
+
+  let uri = decodeURI(document.URL.toString());
+  let valBancoAgrario = false;
+  let pos = uri.indexOf("valBancoAgrario=1345");
+  var opcBancoAgrario = document.getElementById("dvTipoCons")
+
+  if(pos > 0 )
+  {
+    opcBancoAgrario.style.display = "block";
+    document.getElementById("hdTipoCons").value="Consulta Banco Agrario";
+    
+    /*setTimeout(() => {
+      alert("Señor funcionario del Banco Agrario: \n\t Tenga en cuenta que las conclusiones que se genera en el siguiente certificado por este acceso, " +
+      "están acordes a una solicitud particular realizada por el área de riesgos de su entidad para lograr el entendimiento de la destinación de suelos, para " +
+      "el cual se requiere de la certificación, con respecto a la zonificación ambiental de las áreas protegidas declaradas en la jurisdicción de la CAS. " +
+      "Cabe señalar que en ésta etapa PILOTO, el resultado no constituye una versión final para toma de decisiones, sino un documento de prueba para definir " +
+      "o establecer la parametrización del certificado/documento final.");
+    }, 500);*/
+    
+
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('customAlert').style.display = 'block';
+    });
+
+    document.querySelector('.close-btn').addEventListener('click', function() {
+      document.getElementById('customAlert').style.display = 'none';
+    });
+
+
+  }else{
+    opcBancoAgrario.style.display = "none";
+    document.getElementById("hdTipoCons").value="Publico";
+  }
+
+  function validarContenido(){
+    if(document.getElementById("the_geom2").value != "")
+    {
+      return true;
+    }
+    else
+    {
+      document.getElementById('customAlert2').style.display = 'block';
+
+      
+      document.querySelector('.close-btn2').addEventListener('click', function() {
+        document.getElementById('customAlert2').style.display = 'none';
+      });
+      
+      return false;
+    }
+      
+  }
+  
+</script>
+
+	  
+        <h4>Sistema de Coordenadas</h4>
+          
+            <input type="hidden" name="the_geom" id="the_geom" value="<?php echo $_POST['the_geom']; ?>">
+            <input type="hidden" name="norte" id="norte" value="<?php echo $_POST['north']; ?>">
+            <!--DIV PARA SRS-->
+            <div class="col"><input name="datum" type="radio" value="3116" onclick="ShowGeomWindow(this.form);">Planas (X/Y)</div>
+            <div class="col"><input name="datum" type="radio" value="4326" onclick="ShowGeomWindow(this.form);">Geográficas (Lat/Long)</div>
+            <div class="col"><input name="datum" type="radio" value="4326" onclick="ShowGeomWindow2(this.form);">Geográficas (GG.MM.SS)</div>
+            <!--DIV PARA AREA DE TEXTO-->
+            <br>
+            <div class="form-group">
+              <label for="exampleFormControlTextarea3">Coordenadas</label>
+              <textarea class="form-control" name="the_geom2" id="the_geom2" rows="4" disabled></textarea>
+            </div>
+            <br>          
+              <div class="text-center"><input name="Enviar"  id="Enviar consulta" value="Enviar" class="btn btn-lg btn-block text-white" style="background-color:#00801d;" onclick="javascript: if(validarContenido()){ fr_consulta_ambiental.submit();}">
+        </form>       
+    </div>
+  </div>
+</div>
+</div>
+</body>
+</html>
