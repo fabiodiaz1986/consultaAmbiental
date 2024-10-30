@@ -28,30 +28,6 @@
 	 $zvida = array();
 	 $contar = 0;
 	 $TipoCons = $_POST['hdTipoCons'];
-	 $externalIp = get_client_ip();
-
-
-	 /* 
-	 	OBTIENE IP PARA REGISTRO DE TRAZA
-	  */
-	 function get_client_ip() {
-        $ipaddress = '';
-        if (getenv('HTTP_CLIENT_IP'))
-            $ipaddress = getenv('HTTP_CLIENT_IP');
-        else if(getenv('HTTP_X_FORWARDED_FOR'))
-            $ipaddress = getenv('HTTP_X_FORWARDED_FOR');
-        else if(getenv('HTTP_X_FORWARDED'))
-            $ipaddress = getenv('HTTP_X_FORWARDED');
-        else if(getenv('HTTP_FORWARDED_FOR'))
-            $ipaddress = getenv('HTTP_FORWARDED_FOR');
-        else if(getenv('HTTP_FORWARDED'))
-           $ipaddress = getenv('HTTP_FORWARDED');
-        else if(getenv('REMOTE_ADDR'))
-            $ipaddress = getenv('REMOTE_ADDR');
-        else
-            $ipaddress = 'UNKNOWN';
-        return $ipaddress;
-    }
 
 	 
 
@@ -66,18 +42,11 @@
 	$conn=pg_connect("host=44.210.170.146 port=5432 user=admincas password=sigcas1962 dbname=sigcas");
 	if ($conn) 
 	{	
-		if ($TipoCons == 'Publico'){
-			$marcarCons = "UPDATE contador_consulta_ambiental SET consulta_general = consulta_general+1, last_update_gen = now() - interval '5 hours'";
-			$trazaCons = "INSERT into traza_consulta(ip, origen, parametros, fech_consulta) values('" . $externalIp . "','" . $TipoCons ."','nomb_predio: " . $_POST['nomPredio'] . " | cod:predial: " . $_POST['codPredial'] ." | Gometria: " .  $_POST['the_geom'] ."', now() - interval '5 hours')";
-		}else{
-			$marcarCons = "UPDATE contador_consulta_ambiental SET consulta_banco = consulta_banco+1, last_update_banco = now() - interval '5 hours'";
-			$trazaCons = "INSERT into traza_consulta(ip, origen, parametros, fech_consulta) values('" . $externalIp . "','" . $TipoCons . "','nomb_predio: " . $_POST['nomPredio'] . " | cod_predial: " . $_POST['codPredial'] ." | Destino_uso: " . $_POST['selectDestino'] ." | Geometria: " .  $_POST['the_geom'] ."', now() - interval '5 hours')";
-		}
-		//echo $trazaCons;
-		pg_query($conn, $trazaCons);
-		pg_query($conn, $marcarCons);
 
 		$validar = "SELECT ST_IsValid(ST_GeomFromText('SRID=" .$SRID . "; ". $_POST['the_geom'] ."')) AS is_valid;";
+		
+		//$validar = "SELECT ST_IsValid(ST_SetSRID(ST_GeomFromText('" . $_POST['the_geom'] . "'), " . $SRID . ")) AS is_valid;";
+
 		$resulta = pg_query($conn, $validar);
 		$row = pg_fetch_assoc($resulta);
 		$is_valid = $row['is_valid'];
@@ -95,19 +64,31 @@
 				echo '<script>alert("Para generar un Certificado, debe seleccionar una actividad destino válida");window.location.href="../consultaAmbiental?valBancoAgrario=1345";</script>';
 			}
 
+
+		
 				
 		if ($SRID == "4326")
 		{
 			//transformar sistema de referencia
-			$SRID = "3116";
-			$transformar = "select ST_AsText(ST_Transform(ST_GeomFromText('" .$_POST['the_geom'] ."',4326),3116))As the_geom;";
+			
+			$transformar = "select ST_AsText(ST_Transform(ST_GeomFromText('" .$_POST['the_geom'] ."',4326),3116))As the_geom, ST_SRID(ST_Transform(ST_GeomFromText('" .$_POST['the_geom'] ."', 4326), 3116)) AS srid_final;";
 			$resulta = pg_query($conn, $transformar);
 			$rowi = pg_fetch_assoc($resulta);
 			array_push($geometri, $rowi);
 			$geom = $rowi['the_geom'];
+			$SRID = $rowi['srid_final'];
 		} elseif ($SRID == "3116")
 		{
 			$geom = $_POST['the_geom'];
+		}elseif ($SRID == "9377")
+		{
+			//transformar sistema de referencia
+			$transformar = "select ST_AsText(ST_Transform(ST_GeomFromText('" .$_POST['the_geom'] ."',9377),3116))As the_geom, ST_SRID(ST_Transform(ST_GeomFromText('" .$_POST['the_geom'] ."', 9377), 3116)) AS srid_final;";
+			$resulta = pg_query($conn, $transformar);
+			$rowi = pg_fetch_assoc($resulta);
+			array_push($geometri, $rowi);
+			$geom = $rowi['the_geom'];
+			$SRID = $rowi['srid_final'];
 		}
 
 		
@@ -165,7 +146,7 @@
 
 
 		//Tipo de geometría
-		   $query  = "SELECT GeometryType(ST_GeomFromText('" . $geom . "')) AS gt;";
+		  $query  = "SELECT GeometryType(ST_GeomFromText('" . $geom . "')) AS gt;";
 		      $result = pg_query($conn, $query);
 		      if ($result) {
 		        while ($row = pg_fetch_assoc($result)) {
@@ -184,7 +165,7 @@
 
 						CASE
 				        	WHEN ST_Length(ST_Intersection(geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))) = 0 THEN 0
-				        	ELSE CAST(ST_Length(ST_Intersection(geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))) / ST_Length(ST_GeomFromText('" . $geom . "', " . $SRID . ")) * 100 AS numeric(10, 2)) 
+				        	ELSE CAST(ST_Length(ST_Intersection(geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))) / ST_Length(ST_GeomFromText('" . $geom . "', " . $SRID . ")) * 100 AS numeric(10, 2))
 				        END AS porce_lon_inter,			        
 
 			        	EXISTS (
@@ -193,16 +174,19 @@
                 			WHERE ST_Intersects(geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))
             			) AS intersection_exists
 
-			FROM areas_protegidas_runap WHERE ST_Intersects(geom, 'SRID=" .$SRID . "; ". $geom ."');";
+			FROM areas_protegidas_runap 
+
+			WHERE ST_Intersects(geom, 'SRID=" .$SRID . "; ". $geom ."');";
+
 			$result = pg_query($conn, $query);
 			if ($result) {
 			while ($row = pg_fetch_assoc($result)) {
 				array_push($sinap, $row);
-				$area_interseccion = $row['area_interseccion'];
-				$porcentaje = $row['porcentaje_traslape'];
-				$longi = $row['longitud_interseccion'];
-				$porce_long = $row['porce_lon_inter'];
-				$intersection_exists = $row['intersection_exists'];
+				 "AREA: " . $area_interseccion = $row['area_interseccion'];
+				 "PORCENAJE: " . $porcentaje = $row['porcentaje_traslape'];
+				 "lONGITUD: " . $longi = $row['longitud_interseccion'];
+				 " %: " . $porce_long = $row['porce_lon_inter'];
+				 "INTERSECTA: " . $intersection_exists = $row['intersection_exists'];
 				}
 			}
 
@@ -259,45 +243,134 @@
 				$porcentaje = $row['porcentaje_traslape'];
 				}
 			}
-			
+
+			//Consulta POMCAS
+
+		$query = "WITH subquery AS (
+			    SELECT cod_pomca, pomcas, cat_ord, zo_us_ma, szo_us_m,
+			    	CAST(ST_Area(ST_Intersection(the_geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))) / 10000 AS numeric(10,2)) AS area_interseccion,
+			        CAST(ST_Length(ST_Intersection(the_geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))) AS numeric(10,2)) AS longitud_interseccion			        
+			    FROM public.vista_zonif_amb_pomcas
+			    WHERE ST_Intersects(the_geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))
+			  )			
+			/*-- Consulta principal utilizando la subconsulta*/
+			SELECT cod_pomca, pomcas, cat_ord, zo_us_ma, szo_us_m,
+			    SUM(area_interseccion) AS total_area_interseccion,			    
+			    SUM(longitud_interseccion) AS total_longitud_interseccion
+			FROM subquery
+			GROUP BY cod_pomca, pomcas, cat_ord, zo_us_ma, szo_us_m;";
+
+			/*-- Preparar y ejecutar la consulta con valores parametrizados*/
+			$result = pg_query($conn, $query);
+			if ($result) {
+				 while ($row = pg_fetch_assoc($result)) {
+				   array_push($zonifpomca, $row);
+				 }
+			}
+
+
+		//Consulta PGOF
+
+		$query = "WITH subquery AS (
+			    SELECT cod_pgof, uaof, categoria,
+			    	CAST(ST_Area(ST_Intersection(the_geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))) / 10000 AS numeric(10,2)) AS area_interseccion,
+			        CAST(ST_Length(ST_Intersection(the_geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))) AS numeric(10,2)) AS longitud_interseccion			        
+			    FROM public.vista_categorias_pgof
+			    WHERE ST_Intersects(the_geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))
+			  )			
+			/*-- Consulta principal utilizando la subconsulta*/
+			SELECT cod_pgof, uaof, categoria,
+			    SUM(area_interseccion) AS total_area_interseccion,			    
+			    SUM(longitud_interseccion) AS total_longitud_interseccion
+			FROM subquery
+			GROUP BY cod_pgof, uaof, categoria;";
+
+			/*-- Preparar y ejecutar la consulta con valores parametrizados*/
+			$result = pg_query($conn, $query);
+			if ($result) {
+				 while ($row = pg_fetch_assoc($result)) {
+				   array_push($catpgof, $row);
+				 }
+			}
+
+		//Consulta Cobertura PGOF
+
+		$query = "WITH subquery AS (
+			    SELECT cod_pgof, uaof, n1_cober, n2_cober, n3_cober, n4_cober, n5_cober, n6_cober,
+			    	CAST(ST_Area(ST_Intersection(the_geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))) / 10000 AS numeric(10,2)) AS area_interseccion,
+			        CAST(ST_Length(ST_Intersection(the_geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))) AS numeric(10,2)) AS longitud_interseccion			        
+			    FROM public.vista_cobertura_pgof
+			    WHERE ST_Intersects(the_geom, ST_GeomFromText('" . $geom . "', " . $SRID . "))
+			  )			
+			/*Consulta principal utilizando la subconsulta*/
+			SELECT cod_pgof, uaof, n1_cober, n2_cober, n3_cober, n4_cober, n5_cober, n6_cober,
+			    SUM(area_interseccion) AS total_area_interseccion,			    
+			    SUM(longitud_interseccion) AS total_longitud_interseccion
+			FROM subquery
+			GROUP BY cod_pgof, uaof, n1_cober, n2_cober, n3_cober, n4_cober, n5_cober, n6_cober;";
+
+			/*-- Preparar y ejecutar la consulta con valores parametrizados*/
+			$result = pg_query($conn, $query);
+			if ($result) {
+				 while ($row = pg_fetch_assoc($result)) {
+				   array_push($cobpgof, $row);
+				 }
+			}
+					
 
 		//Consulta de la corriente mas cercana o las intersecciones para drenajes sencillos
-		if ($geomtype == 'POINT') {
-			$query  = "SELECT estado, plancha, fuente, anio, ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo, CAST(ST_distance('SRID=" . $SRID . "; " . $geom . "'::geometry, geom)AS numeric(10,2)) AS distancia FROM drenaje_sencillos_25k_consolidado_igac
-		  				WHERE geom && ST_expand(ST_GeomFromText('" . $geom . "'), 10) ORDER BY distancia ASC LIMIT 1;";
-		} else if ($geomtype == 'LINESTRING') {
-			$query  = "SELECT estado, plancha, fuente, anio, ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM drenaje_sencillos_25k_consolidado_igac WHERE ST_Intersects(geom, ST_GeomFromText('" . $geom . "', " . $SRID . "));";
-		} else if ($geomtype == 'POLYGON') {
-			$query  = "SELECT estado, plancha, fuente, anio, ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM drenaje_sencillos_25k_consolidado_igac WHERE ST_Intersects(geom, 'SRID=" .$SRID . "; ". $geom ."');";
-		} else if ($geomtype == 'MULTIPOLYGON') {
-			$query  = "SELECT estado, plancha, fuente, anio, ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM drenaje_sencillos_25k_consolidado_igac WHERE ST_Intersects(geom, 'SRID=" .$SRID . "; ". $geom ."');";
-		}
+		     if ($geomtype == 'POINT') {
+		      	$query  = "SELECT estado, plancha, fuente, anio, ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo, CAST(ST_distance('SRID=" . $SRID . "; " . $geom . "'::geometry, geom)AS numeric(10,2)) AS distancia FROM drenaje_sencillos_25k_consolidado_igac
+		      		WHERE geom && ST_expand(ST_GeomFromText('" . $geom . "'), 10) ORDER BY distancia ASC LIMIT 1;";
+		      } else {
 
-		$result = pg_query($conn, $query);
-		if ($result) {
-		    while ($row = pg_fetch_assoc($result)) {
-		        array_push($corriente, $row);
-		    }
-		}
+		      if ($geomtype == 'LINESTRING') {
+		        $query  = "SELECT estado, plancha, fuente, anio, ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM drenaje_sencillos_25k_consolidado_igac WHERE ST_Intersects(geom, ST_GeomFromText('" . $geom . "', " . $SRID . "));";
+		      } else {
+
+		      	if ($geomtype == 'POLYGON') {
+		        $query  = "SELECT estado, plancha, fuente, anio, ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM drenaje_sencillos_25k_consolidado_igac WHERE ST_Intersects(geom, 'SRID=" .$SRID . "; ". $geom ."');";
+		       } else {
+		       	if ($geomtype == 'MULTIPOLYGON') {
+		        $query  = "SELECT estado, plancha, fuente, anio, ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM drenaje_sencillos_25k_consolidado_igac WHERE ST_Intersects(geom, 'SRID=" .$SRID . "; ". $geom ."');";
+		       }
+		       }
+		      }
+		  }
+		  
+		  $result = pg_query($conn, $query);
+		      if ($result) {
+		        while ($row = pg_fetch_assoc($result)) {
+		          array_push($corriente, $row);
+		        }
+		      }
 
 		 //Consulta de la corriente mas cercana o las intersecciones para drenajes dobles
-		if ($geomtype == 'POINT') {
-		    $query  = "SELECT ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo, CAST(ST_distance('SRID=" . $SRID . "; " . $geom . "'::geometry, geom)AS numeric(10,2)) AS distancia FROM capa_5101_drenaje_doble
-		      			WHERE geom && ST_expand(ST_GeomFromText('" . $geom . "'), 10) ORDER BY distancia ASC LIMIT 1;";
-		} else if ($geomtype == 'LINESTRING') {
-		    $query  = "SELECT ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM capa_5101_drenaje_doble WHERE ST_Intersects(geom, ST_GeomFromText('" . $geom . "', " . $SRID . "));";
-		} else if ($geomtype == 'POLYGON') {
-			$query  = "SELECT ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM capa_5101_drenaje_doble WHERE ST_Intersects(geom, 'SRID=" .$SRID . "; ". $geom ."');";
-		} else if ($geomtype == 'MULTIPOLYGON') {
-			$query  = "SELECT ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM capa_5101_drenaje_doble WHERE ST_Intersects(geom, 'SRID=" .$SRID . "; ". $geom ."');";
-		}
+		     if ($geomtype == 'POINT') {
+		      	$query  = "SELECT ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo, CAST(ST_distance('SRID=" . $SRID . "; " . $geom . "'::geometry, geom)AS numeric(10,2)) AS distancia FROM capa_5101_drenaje_doble
+		      		WHERE geom && ST_expand(ST_GeomFromText('" . $geom . "'), 10) ORDER BY distancia ASC LIMIT 1;";
+		      } else {
+
+		      if ($geomtype == 'LINESTRING') {
+		        $query  = "SELECT ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM capa_5101_drenaje_doble WHERE ST_Intersects(geom, ST_GeomFromText('" . $geom . "', " . $SRID . "));";
+		      } else {
+
+		      	if ($geomtype == 'POLYGON') {
+		        $query  = "SELECT ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM capa_5101_drenaje_doble WHERE ST_Intersects(geom, 'SRID=" .$SRID . "; ". $geom ."');";
+		       } else {
+		       	if ($geomtype == 'MULTIPOLYGON') {
+		        $query  = "SELECT ROW_NUMBER() OVER (ORDER BY nombre_geo) AS ID, COALESCE(nombre_geo, 'Innominado') AS nombre_geo FROM capa_5101_drenaje_doble WHERE ST_Intersects(geom, 'SRID=" .$SRID . "; ". $geom ."');";
+		       }
+		   	   }	
+		      }
+		  }
 		  
-		$result = pg_query($conn, $query);
-		if ($result) {
-		    while ($row = pg_fetch_assoc($result)) {
-		    	array_push($corrienteDoble, $row);
-		    }
-		}
+		  $result = pg_query($conn, $query);
+		      if ($result) {
+		        while ($row = pg_fetch_assoc($result)) {
+		          array_push($corrienteDoble, $row);
+		        }
+		      }
 
 		//Area y perimetro de la geometría
 	   $query  = "SELECT 
