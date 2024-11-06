@@ -258,20 +258,25 @@
 	  
         <h4>Sistema de Coordenadas</h4>
           
-            <input type="hidden" name="the_geom" id="the_geom" value="<?php echo $_POST['the_geom']; ?>">
-            <input type="hidden" name="norte" id="norte" value="<?php echo $_POST['north']; ?>">
-            <!--DIV PARA SRS-->
-            <div class="col"><input name="datum" type="radio" value="3116" onclick="ShowGeomWindow(this.form);">Planas (X/Y)</div>
-            <div class="col"><input name="datum" type="radio" value="4326" onclick="ShowGeomWindow(this.form);">Geográficas (Lat/Long)</div>
-            <div class="col"><input name="datum" type="radio" value="4326" onclick="ShowGeomWindow2(this.form);">Geográficas (GG.MM.SS)</div>
-            <!--DIV PARA AREA DE TEXTO-->
-            <br>
-            <div class="form-group">
-              <label for="exampleFormControlTextarea3">Coordenadas</label>
-              <textarea class="form-control" name="the_geom2" id="the_geom2" rows="4" disabled></textarea>
-            </div>
-            <br>          
-              <div class="text-center"><input name="Enviar"  id="Enviar consulta" value="Enviar" class="btn btn-lg btn-block text-white" style="background-color:#00801d;" onclick="javascript: if(validarContenido()){ fr_consulta_ambiental.submit();}">
+        <input type="hidden" name="the_geom" id="the_geom" value="<?php echo $_POST['the_geom']; ?>">
+        <input type="hidden" name="norte" id="norte" value="<?php echo $_POST['north']; ?>">
+        <label for="nombre" class="form-label">Cargue de archivo</label>
+        <div class="col"><input name="datum" type="radio" value="4326" onclick="convertToWKT(this.form);">Archivo *.json</div>
+
+        <!--DIV PARA SRS-->
+        <label for="nombre" class="form-label">Ingreso de coordenadas</label>
+        <div class="col"><input name="datum" type="radio" value="3116" onclick="ShowGeomWindow(this.form);">Planas (X/Y) - Epsg 3116</div>
+        <div class="col"><input name="datum" type="radio" value="4326" onclick="ShowGeomWindow(this.form);">Geográficas (Lat/Long) - Epsg 4326</div>
+        <div class="col"><input name="datum" type="radio" value="4326" onclick="ShowGeomWindow2(this.form);">Geográficas (GG.MM.SS) - Epsg 4326</div>
+        <div class="col"><input name="datum" type="radio" value="9377" onclick="ShowGeomWindow(this.form);">Planas Origen Nacional - Epsg 9377</div>
+        <!--DIV PARA AREA DE TEXTO-->
+        <br>
+        <div class="form-group">
+          <label for="exampleFormControlTextarea3">Coordenadas</label>
+          <textarea class="form-control" name="the_geom2" id="the_geom2" rows="4" disabled></textarea>
+        </div>
+        <br>          
+          <div class="text-center"><input name="Enviar" type="submit" id="Enviar consulta" value="Enviar" class="btn btn-lg btn-block text-white" style="background-color:#00801d;">
         </form>       
     </div>
   </div>
